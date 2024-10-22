@@ -1,0 +1,38 @@
+name: C2
+
+# Menjalankan secara otomatis setiap 4 jam
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Setiap 6 jam pada menit ke-0
+
+jobs:
+  update-repo:
+    runs-on: ubuntu-latest  # Menjalankan job di lingkungan Ubuntu
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3  # Mengambil kode dari repository
+
+      - name: Update README with timestamp in WIB
+        run: |
+          export TZ="Asia/Jakarta"  # Mengatur zona waktu ke Asia/Jakarta (WIB)
+          TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S %Z")  # Mendapatkan timestamp dalam format yang diinginkan (WIB)
+          echo "Last updated: $TIMESTAMP" > README.md  # Perbarui atau buat README.md dengan timestamp WIB
+
+      - name: Configure Git
+        run: |
+          git config user.name "siegrin"  # Mengatur nama pengguna untuk commit
+          git config user.email "piubitt@gmail.com"  # Mengatur email pengguna untuk commit
+          git config user.signingkey F77FA5C7E92588A756B36E606FD5D53407B2C619  # Menambahkan GPG key ID
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import --batch --yes  # Mengimpor GPG key dari secret
+          gpg --list-secret-keys  # Menampilkan kunci rahasia untuk verifikasi
+
+      - name: Commit changes
+        run: |
+          git add README.md  # Menambahkan README.md ke staging area
+          git commit -S -m "Auto update README at $TIMESTAMP" || echo "No changes to commit"  # Commit dengan tanda tangan jika ada perubahan
+
+      - name: Push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Gunakan token yang aman untuk melakukan push
+        run: |
+          git push origin main  # Mengirimkan perubahan ke branch 'main'
